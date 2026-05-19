@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-950: #042f2e;
+  --color-emerald-950: #022c22;
+
+  --color-surface: #f6f5f1;
+  --color-surface-elevated: #ffffff;
+  --color-sidebar: #0c1222;
+  --color-sidebar-hover: #1a2338;
+  --color-sidebar-active: #1e3a4a;
+
+  --color-text-primary: #0f172a;
+  --color-text-muted: #64748b;
+
+  --shadow-card: 0 1px 2px rgb(12 18 34 / 0.04), 0 4px 12px rgb(12 18 34 / 0.06);
+  --shadow-card-hover: 0 4px 6px rgb(12 18 34 / 0.06), 0 12px 28px rgb(12 18 34 / 0.1);
+  --shadow-modal: 0 24px 48px rgb(12 18 34 / 0.18);
+}
+
+.dark {
+  --color-surface: #0b0f14;
+  --color-surface-elevated: #151b24;
+  --color-sidebar: #060a10;
+  --color-sidebar-hover: #111827;
+  --color-sidebar-active: #134e4a;
+
+  --color-text-primary: #f1f5f9;
+  --color-text-muted: #94a3b8;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 4px 12px rgb(0 0 0 / 0.25);
+  --shadow-card-hover: 0 4px 8px rgb(0 0 0 / 0.3), 0 12px 28px rgb(0 0 0 / 0.35);
+  --shadow-modal: 0 24px 48px rgb(0 0 0 / 0.5);
+
+  color-scheme: dark;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+    background-color: var(--color-surface);
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-200);
+    color: var(--color-brand-700);
+  }
+
+  .dark ::selection {
+    background-color: rgb(20 184 166 / 0.35);
+    color: #ccfbf1;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  .dark * {
+    scrollbar-color: #334155 transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+  }
+
+  .dark *::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+}
+
+@layer components {
+  .board-canvas {
+    background-color: var(--color-surface);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgb(148 163 184 / 0.22) 1px, transparent 0);
+    background-size: 24px 24px;
+    transition: background-color 0.25s ease;
+  }
+
+  .dark .board-canvas {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgb(71 85 105 / 0.2) 1px, transparent 0);
+  }
+
+  .main-panel {
+    @apply flex min-w-0 flex-1 flex-col overflow-hidden rounded-l-2xl bg-surface;
+    box-shadow: -8px 0 32px rgb(0 0 0 / 0.12);
+    transition: background-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .dark .main-panel {
+    box-shadow: -8px 0 32px rgb(0 0 0 / 0.4);
+  }
+
+  .btn-primary {
+    @apply rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition;
+    @apply hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
+    @apply dark:focus:ring-offset-slate-900;
+  }
+
+  .btn-secondary {
+    @apply rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition;
+    @apply hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2;
+    @apply dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
+    @apply dark:focus:ring-slate-500 dark:focus:ring-offset-slate-900;
+  }
+
+  .btn-ghost {
+    @apply rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition;
+    @apply hover:bg-slate-100 hover:text-slate-900;
+    @apply dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100;
+  }
+
+  .btn-danger {
+    @apply rounded-lg px-4 py-2 text-sm font-medium text-rose-600 transition;
+    @apply hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-2;
+    @apply dark:text-rose-400 dark:hover:bg-rose-950/50 dark:focus:ring-offset-slate-900;
+  }
+
+  .input-field {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition;
+    @apply placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+    @apply dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500;
+  }
+
+  .empty-state {
+    @apply flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300/80 bg-white/70 px-8 py-16 text-center backdrop-blur-sm;
+    @apply dark:border-slate-600 dark:bg-slate-800/60;
+  }
+
+  .kanban-column {
+    @apply flex max-h-[calc(100vh-7.5rem)] w-[17.5rem] shrink-0 flex-col rounded-2xl border border-slate-200/80 bg-white/75 p-3 shadow-sm backdrop-blur-md;
+    @apply dark:border-slate-700/80 dark:bg-slate-800/80;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+  }
+
+  .task-card {
+    @apply w-full rounded-xl border border-slate-200/90 bg-white p-3.5 text-left transition;
+    box-shadow: var(--shadow-card);
+    @apply dark:border-slate-600/90 dark:bg-slate-800;
+  }
+
+  .task-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    @apply border-brand-200/80 dark:border-brand-500/40;
+  }
+
+  .task-card:focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-slate-900;
+  }
+
+  .modal-panel {
+    @apply w-full max-w-lg overflow-hidden rounded-2xl bg-white;
+    @apply dark:bg-slate-800;
+    box-shadow: var(--shadow-modal);
+  }
+
+  .modal-header {
+    @apply border-b border-slate-100 bg-gradient-to-r from-brand-50/80 to-white px-6 py-4;
+    @apply dark:border-slate-700 dark:from-brand-950/40 dark:to-slate-800;
+  }
+
+  .modal-footer {
+    @apply flex justify-between border-t border-slate-100 bg-slate-50/50 px-6 py-4;
+    @apply dark:border-slate-700 dark:bg-slate-900/50;
+  }
+}
