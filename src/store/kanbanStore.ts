@@ -1,8 +1,11 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { nanoid } from 'nanoid'
-import { arrayMove } from '../utils/reorder.ts'
-import { STORAGE_KEY } from '../utils/storage.ts'
+import { normalizeBoard } from '../utils/boardValidate.ts'
+import { isDoneColumn } from '../utils/columnMatch.ts'
+import { STORAGE_KEY } from '../utils/persistMigrate.ts'
+import { createKanbanPersistStorage } from '../utils/kanbanStorage.ts'
+import { applyMoveTask } from './actions.ts'
 import { createEmptyBoard, createSeedBoard } from './seed.ts'
 import type { Board, Column, Task } from './types.ts'
 
@@ -21,10 +24,13 @@ type KanbanState = {
   addTask: (columnId: string, title: string) => void
   updateTask: (
     taskId: string,
-    updates: Partial<Pick<Task, 'title' | 'description' | 'labelIds'>>,
+    updates: Partial<Pick<Task, 'title' | 'description' | 'labelIds' | 'dueDate'>>,
   ) => void
   deleteTask: (taskId: string) => void
+  duplicateTask: (taskId: string) => void
+  clearDoneColumn: () => void
   moveTask: (activeId: string, overId: string) => void
+  resetToSeed: () => void
 }
 
 const seedBoard = createSeedBoard()
@@ -33,6 +39,12 @@ const initialData = {
   boards: { [seedBoard.id]: seedBoard },
   boardOrder: [seedBoard.id],
   activeBoardId: seedBoard.id,
+}
+
+function normalizeBoardsInState(boards: Record<string, Board>): Record<string, Board> {
+  return Object.fromEntries(
+    Object.entries(boards).map(([id, board]) => [id, normalizeBoard(board)]),
+  )
 }
 
 export const useKanbanStore = create<KanbanState>()(
@@ -174,6 +186,7 @@ export const useKanbanStore = create<KanbanState>()(
           description: '',
           labelIds: [],
           createdAt: Date.now(),
+          dueDate: null,
         }
 
         set((state) => {
@@ -258,6 +271,80 @@ export const useKanbanStore = create<KanbanState>()(
         })
       },
 
+      duplicateTask: (taskId) => {
+        const boardId = get().activeBoardId
+        if (!boardId) return
+
+        set((state) => {
+          const board = state.boards[boardId]
+          const task = board?.tasks[taskId]
+          if (!board || !task) return state
+
+          const column = board.columns[task.columnId]
+          if (!column) return state
+
+          const newId = nanoid()
+          const copy: Task = {
+            ...task,
+            id: newId,
+            title: `${task.title} (copy)`,
+            createdAt: Date.now(),
+          }
+
+          const index = column.taskIds.indexOf(taskId)
+          const newTaskIds = [...column.taskIds]
+          newTaskIds.splice(index + 1, 0, newId)
+
+          return {
+            boards: {
+              ...state.boards,
+              [boardId]: {
+                ...board,
+                tasks: { ...board.tasks, [newId]: copy },
+                columns: {
+                  ...board.columns,
+                  [task.columnId]: { ...column, taskIds: newTaskIds },
+                },
+              },
+            },
+          }
+        })
+      },
+
+      clearDoneColumn: () => {
+        const boardId = get().activeBoardId
+        if (!boardId) return
+
+        set((state) => {
+          const board = state.boards[boardId]
+          if (!board) return state
+
+          const doneColumn = Object.values(board.columns).find((c) =>
+            isDoneColumn(c.title),
+          )
+          if (!doneColumn || doneColumn.taskIds.length === 0) return state
+
+          const removeIds = new Set(doneColumn.taskIds)
+          const remainingTasks = Object.fromEntries(
+            Object.entries(board.tasks).filter(([id]) => !removeIds.has(id)),
+          )
+
+          return {
+            boards: {
+              ...state.boards,
+              [boardId]: {
+                ...board,
+                tasks: remainingTasks,
+                columns: {
+                  ...board.columns,
+                  [doneColumn.id]: { ...doneColumn, taskIds: [] },
+                },
+              },
+            },
+          }
+        })
+      },
+
       moveTask: (activeId, overId) => {
         const boardId = get().activeBoardId
         if (!boardId) return
@@ -266,80 +353,39 @@ export const useKanbanStore = create<KanbanState>()(
           const board = state.boards[boardId]
           if (!board) return state
 
-          const activeTask = board.tasks[activeId]
-          if (!activeTask) return state
-
-          const activeColumn = board.columns[activeTask.columnId]
-          if (!activeColumn) return state
-
-          let overColumnId = overId
-          if (!board.columns[overId]) {
-            const overTask = board.tasks[overId]
-            if (!overTask) return state
-            overColumnId = overTask.columnId
-          }
-
-          const overColumn = board.columns[overColumnId]
-          if (!overColumn) return state
-
-          const activeIndex = activeColumn.taskIds.indexOf(activeId)
-          let overIndex = overColumn.taskIds.indexOf(overId)
-          if (overIndex < 0) {
-            overIndex = overColumn.taskIds.length
-          }
-
-          if (activeTask.columnId === overColumnId && activeIndex === overIndex) {
-            return state
-          }
-
-          if (activeTask.columnId === overColumnId) {
-            const newTaskIds = arrayMove(overColumn.taskIds, activeIndex, overIndex)
-            return {
-              boards: {
-                ...state.boards,
-                [boardId]: {
-                  ...board,
-                  columns: {
-                    ...board.columns,
-                    [overColumnId]: { ...overColumn, taskIds: newTaskIds },
-                  },
-                },
-              },
-            }
-          }
-
-          const newActiveTaskIds = activeColumn.taskIds.filter((id) => id !== activeId)
-          const newOverTaskIds = [...overColumn.taskIds]
-          newOverTaskIds.splice(overIndex, 0, activeId)
+          const updated = applyMoveTask(board, activeId, overId)
+          if (!updated) return state
 
           return {
             boards: {
               ...state.boards,
-              [boardId]: {
-                ...board,
-                tasks: {
-                  ...board.tasks,
-                  [activeId]: { ...activeTask, columnId: overColumnId },
-                },
-                columns: {
-                  ...board.columns,
-                  [activeTask.columnId]: { ...activeColumn, taskIds: newActiveTaskIds },
-                  [overColumnId]: { ...overColumn, taskIds: newOverTaskIds },
-                },
-              },
+              [boardId]: updated,
             },
           }
+        })
+      },
+
+      resetToSeed: () => {
+        const fresh = createSeedBoard()
+        set({
+          boards: { [fresh.id]: fresh },
+          boardOrder: [fresh.id],
+          activeBoardId: fresh.id,
         })
       },
     }),
     {
       name: STORAGE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => createKanbanPersistStorage()),
       partialize: (state) => ({
         boards: state.boards,
         boardOrder: state.boardOrder,
         activeBoardId: state.activeBoardId,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        state.boards = normalizeBoardsInState(state.boards)
+      },
     },
   ),
 )

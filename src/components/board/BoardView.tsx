@@ -12,6 +12,7 @@ import {
 import { useMemo, useRef, useState } from 'react'
 import { useActiveBoard } from '../../hooks/useBoard.ts'
 import { useCelebrationStore } from '../../store/celebrationStore.ts'
+import { useDialogStore } from '../../store/dialogStore.ts'
 import { useKanbanStore } from '../../store/kanbanStore.ts'
 import { getColumnCelebration } from '../../utils/columnCelebration.ts'
 import { taskMatchesSearch } from '../../utils/taskSearch.ts'
@@ -48,6 +49,7 @@ export function BoardView({ searchQuery, onTaskClick }: BoardViewProps) {
   const board = useActiveBoard()
   const moveTask = useKanbanStore((s) => s.moveTask)
   const addColumn = useKanbanStore((s) => s.addColumn)
+  const prompt = useDialogStore((s) => s.prompt)
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const sourceColumnIdRef = useRef<string | null>(null)
   const showCelebration = useCelebrationStore((s) => s.show)
@@ -146,9 +148,12 @@ export function BoardView({ searchQuery, onTaskClick }: BoardViewProps) {
     setActiveTaskId(null)
   }
 
-  const handleAddColumn = () => {
-    const title = window.prompt('Column name', 'New Column')
-    if (title?.trim()) addColumn(title.trim())
+  const handleAddColumn = async () => {
+    const title = await prompt({
+      title: 'Column name',
+      defaultValue: 'New Column',
+    })
+    if (title) addColumn(title)
   }
 
   if (isSearching && totalVisibleTasks === 0) {

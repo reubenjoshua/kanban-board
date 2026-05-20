@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Board } from '../../store/types.ts'
+import { useDialogStore } from '../../store/dialogStore.ts'
+import { useFocusTrap } from '../../hooks/useFocusTrap.ts'
 import { useKanbanStore } from '../../store/kanbanStore.ts'
 import { LabelPicker } from './LabelPicker.tsx'
 
@@ -35,16 +37,23 @@ export function TaskModal({ taskId, board, onClose }: TaskModalProps) {
   const task = board.tasks[taskId]
   const updateTask = useKanbanStore((s) => s.updateTask)
   const deleteTask = useKanbanStore((s) => s.deleteTask)
+  const duplicateTask = useKanbanStore((s) => s.duplicateTask)
+  const confirm = useDialogStore((s) => s.confirm)
+
+  const panelRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(panelRef, true)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [labelIds, setLabelIds] = useState<string[]>([])
+  const [dueDate, setDueDate] = useState('')
 
   useEffect(() => {
     if (!task) return
     setTitle(task.title)
     setDescription(task.description)
     setLabelIds(task.labelIds)
+    setDueDate(task.dueDate ?? '')
   }, [task])
 
   if (!task) return null
@@ -56,13 +65,25 @@ export function TaskModal({ taskId, board, onClose }: TaskModalProps) {
       title: trimmed,
       description: description.trim(),
       labelIds,
+      dueDate: dueDate || null,
     })
     onClose()
   }
 
-  const handleDelete = () => {
-    if (!window.confirm('Delete this task?')) return
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: 'Delete task',
+      message: 'Delete this task? This cannot be undone.',
+      destructive: true,
+      confirmLabel: 'Delete',
+    })
+    if (!ok) return
     deleteTask(taskId)
+    onClose()
+  }
+
+  const handleDuplicate = () => {
+    duplicateTask(taskId)
     onClose()
   }
 
@@ -76,6 +97,7 @@ export function TaskModal({ taskId, board, onClose }: TaskModalProps) {
       onClick={onClose}
     >
       <motion.div
+        ref={panelRef}
         className="modal-panel"
         variants={panelVariants}
         initial="hidden"
@@ -132,6 +154,18 @@ export function TaskModal({ taskId, board, onClose }: TaskModalProps) {
           </div>
 
           <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Due date
+            </label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="input-field"
+            />
+          </div>
+
+          <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Labels
             </label>
@@ -144,9 +178,14 @@ export function TaskModal({ taskId, board, onClose }: TaskModalProps) {
         </div>
 
         <div className="modal-footer">
-          <button type="button" onClick={handleDelete} className="btn-danger">
-            Delete
-          </button>
+          <div className="flex gap-2">
+            <button type="button" onClick={handleDelete} className="btn-danger">
+              Delete
+            </button>
+            <button type="button" onClick={handleDuplicate} className="btn-ghost">
+              Duplicate
+            </button>
+          </div>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="btn-secondary">
               Cancel
