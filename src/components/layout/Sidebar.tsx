@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import type { MouseEvent } from 'react'
+import { useDialogStore } from '../../store/dialogStore.ts'
 import { useKanbanStore } from '../../store/kanbanStore.ts'
 import { cn } from '../../utils/cn.ts'
 import { SidebarThemeToggle } from './ThemeToggle.tsx'
@@ -12,27 +13,45 @@ export function Sidebar() {
   const addBoard = useKanbanStore((s) => s.addBoard)
   const renameBoard = useKanbanStore((s) => s.renameBoard)
   const deleteBoard = useKanbanStore((s) => s.deleteBoard)
+  const prompt = useDialogStore((s) => s.prompt)
+  const confirm = useDialogStore((s) => s.confirm)
 
-  const handleNewBoard = () => {
-    const name = window.prompt('Board name', 'Untitled Board')
-    if (name?.trim()) addBoard(name.trim())
+  const handleNewBoard = async () => {
+    const name = await prompt({ title: 'Board name', defaultValue: 'Untitled Board' })
+    if (name) addBoard(name)
   }
 
-  const handleRename = (e: MouseEvent, boardId: string, currentName: string) => {
+  const handleRename = async (
+    e: MouseEvent,
+    boardId: string,
+    currentName: string,
+  ) => {
     e.stopPropagation()
-    const name = window.prompt('Rename board', currentName)
-    if (name?.trim()) renameBoard(boardId, name.trim())
+    const name = await prompt({ title: 'Rename board', defaultValue: currentName })
+    if (name) renameBoard(boardId, name)
   }
 
-  const handleDelete = (e: MouseEvent, boardId: string, boardName: string) => {
+  const handleDelete = async (
+    e: MouseEvent,
+    boardId: string,
+    boardName: string,
+  ) => {
     e.stopPropagation()
     if (boardOrder.length <= 1) {
-      window.alert('You need at least one board.')
+      await confirm({
+        title: 'Cannot delete',
+        message: 'You need at least one board.',
+        confirmLabel: 'OK',
+      })
       return
     }
-    if (window.confirm(`Delete board "${boardName}"? This cannot be undone.`)) {
-      deleteBoard(boardId)
-    }
+    const ok = await confirm({
+      title: 'Delete board',
+      message: `Delete board "${boardName}"? This cannot be undone.`,
+      destructive: true,
+      confirmLabel: 'Delete',
+    })
+    if (ok) deleteBoard(boardId)
   }
 
   return (

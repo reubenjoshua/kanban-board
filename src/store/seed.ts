@@ -4,17 +4,20 @@ export const DEFAULT_LABELS: Record<string, Label> = {
   'label-bug': {
     id: 'label-bug',
     name: 'Bug',
-    color: 'bg-rose-500/12 text-rose-700 ring-1 ring-rose-500/25',
+    color:
+      'bg-rose-500/12 text-rose-700 ring-1 ring-rose-500/25 dark:bg-rose-500/20 dark:text-rose-300 dark:ring-rose-400/35',
   },
   'label-feature': {
     id: 'label-feature',
     name: 'Feature',
-    color: 'bg-sky-500/12 text-sky-700 ring-1 ring-sky-500/25',
+    color:
+      'bg-sky-500/12 text-sky-700 ring-1 ring-sky-500/25 dark:bg-sky-500/20 dark:text-sky-300 dark:ring-sky-400/35',
   },
   'label-design': {
     id: 'label-design',
     name: 'Design',
-    color: 'bg-violet-500/12 text-violet-700 ring-1 ring-violet-500/25',
+    color:
+      'bg-violet-500/12 text-violet-700 ring-1 ring-violet-500/25 dark:bg-violet-500/20 dark:text-violet-300 dark:ring-violet-400/35',
   },
 }
 
@@ -45,6 +48,7 @@ export function createSeedBoard(): Board {
         description: 'Install deps and folder structure',
         labelIds: ['label-feature'],
         createdAt: Date.now(),
+        dueDate: null,
       },
       'task-2': {
         id: 'task-2',
@@ -53,6 +57,7 @@ export function createSeedBoard(): Board {
         description: 'Zustand + normalized board data',
         labelIds: ['label-design'],
         createdAt: Date.now(),
+        dueDate: null,
       },
       'task-3': {
         id: 'task-3',
@@ -61,6 +66,7 @@ export function createSeedBoard(): Board {
         description: 'Columns and cards without drag yet',
         labelIds: ['label-feature', 'label-design'],
         createdAt: Date.now(),
+        dueDate: null,
       },
     },
     labels: { ...DEFAULT_LABELS },
